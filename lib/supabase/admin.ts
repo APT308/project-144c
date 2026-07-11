@@ -10,7 +10,13 @@ export function createAdminClient() {
   );
 }
 
-const BUCKETS = ["contract-documents", "progress-claims", "party-details", "quotations"] as const;
+const BUCKETS = [
+  "contract-documents",
+  "progress-claims",
+  "party-details",
+  "quotations",
+  "work-orders",
+] as const;
 
 let bucketsEnsured = false;
 

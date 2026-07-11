@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import OpenAI from "openai";
 
-type Chunk = {
+export type Chunk = {
   text: string;
   docType: string;
   fileName: string;
@@ -71,7 +71,16 @@ export type RagResult = {
   confidence: number;
 };
 
-export async function ragQuery(question: string, projectId: string): Promise<RagResult> {
+export type RetrievedChunk = {
+  chunk: Chunk;
+  source: string;
+  confidence: number;
+};
+
+// Shared retrieval step used by contractual advice, WO drafting, and
+// letter drafting — all three ground their output in the same
+// contract-document knowledgebase.
+export async function retrieveTopChunk(query: string, projectId: string): Promise<RetrievedChunk | null> {
   const admin = createAdminClient();
   const { data: documents, error } = await admin
     .from("contract_documents")
@@ -79,29 +88,16 @@ export async function ragQuery(question: string, projectId: string): Promise<Rag
     .eq("project_id", projectId);
 
   if (error) throw new Error(error.message);
-  if (!documents || documents.length === 0) {
-    return {
-      answer: "No contract documents in knowledgebase — please upload first.",
-      source: "",
-      confidence: 0,
-    };
-  }
+  if (!documents || documents.length === 0) return null;
 
   const chunks: Chunk[] = documents.flatMap((doc) =>
     doc.parsed_text ? splitIntoChunks(doc.parsed_text, doc.doc_type, doc.file_name ?? doc.doc_type) : [],
   );
+  if (chunks.length === 0) return null;
 
-  if (chunks.length === 0) {
-    return {
-      answer: "No contract documents in knowledgebase — please upload first.",
-      source: "",
-      confidence: 0,
-    };
-  }
-
-  const questionTokens = tokenize(question);
+  const queryTokens = tokenize(query);
   const scored = chunks
-    .map((chunk) => ({ chunk, score: cosineSimilarity(questionTokens, tokenize(chunk.text)) }))
+    .map((chunk) => ({ chunk, score: cosineSimilarity(queryTokens, tokenize(chunk.text)) }))
     .sort((a, b) => b.score - a.score);
 
   const top = scored[0];
@@ -110,9 +106,21 @@ export async function ragQuery(question: string, projectId: string): Promise<Rag
     ? `${formatDocType(top.chunk.docType)} — ${top.chunk.clauseRef}`
     : `${formatDocType(top.chunk.docType)} — ${top.chunk.fileName}`;
 
-  const answer = await generateAnswer(question, top.chunk, source);
+  return { chunk: top.chunk, source, confidence };
+}
 
-  return { answer, source, confidence };
+export async function ragQuery(question: string, projectId: string): Promise<RagResult> {
+  const top = await retrieveTopChunk(question, projectId);
+  if (!top) {
+    return {
+      answer: "No contract documents in knowledgebase — please upload first.",
+      source: "",
+      confidence: 0,
+    };
+  }
+
+  const answer = await generateAnswer(question, top.chunk, top.source);
+  return { answer, source: top.source, confidence: top.confidence };
 }
 
 function formatDocType(docType: string): string {
