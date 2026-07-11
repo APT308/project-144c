@@ -14,7 +14,11 @@ export async function getCurrentUserProfile(supabase: SupabaseClient): Promise<U
   } = await supabase.auth.getUser();
   if (!user || !user.email) return null;
 
-  const { data } = await supabase.rpc("current_user_profile").maybeSingle();
+  const { data, error } = await supabase.rpc("current_user_profile").maybeSingle();
+  if (error) {
+    console.error("current_user_profile RPC failed:", error.message);
+    return null;
+  }
   if (!data || !data.is_active) return null;
 
   return { email: user.email, role: data.role === "admin" ? "admin" : "qs_user" };
