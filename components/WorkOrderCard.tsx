@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { approveWorkOrder } from "@/app/work-orders/actions";
+import { approveWorkOrder } from "@/app/(app)/work-orders/actions";
 
 type WorkOrder = {
   id: string;

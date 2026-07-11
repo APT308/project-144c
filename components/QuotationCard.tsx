@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { overrideRecommendation, deleteQuotation } from "@/app/quotations/actions";
+import { overrideRecommendation, deleteQuotation } from "@/app/(app)/quotations/actions";
 
 type QuoteRow = {
   fileName: string;

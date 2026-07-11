@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { approveLetter, markLetterSent } from "@/app/letters/actions";
+import { approveLetter, markLetterSent } from "@/app/(app)/letters/actions";
 
 type Letter = {
   id: string;

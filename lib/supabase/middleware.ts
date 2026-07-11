@@ -1,5 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getCurrentUserProfile } from "@/lib/auth";
+
+const PUBLIC_PATHS = ["/login"];
 
 export async function updateSession(request: NextRequest) {
   const supabaseResponse = NextResponse.next({ request });
@@ -14,6 +17,10 @@ export async function updateSession(request: NextRequest) {
   if (!url || !anonKey) {
     return supabaseResponse;
   }
+
+  const pathname = request.nextUrl.pathname;
+  const isPublicPath =
+    PUBLIC_PATHS.includes(pathname) || pathname.startsWith("/api/");
 
   try {
     let response = supabaseResponse;
@@ -35,7 +42,17 @@ export async function updateSession(request: NextRequest) {
     });
 
     // Refresh session so it doesn't expire while user is active
-    await supabase.auth.getUser();
+    const profile = await getCurrentUserProfile(supabase);
+
+    if (!isPublicPath && !profile) {
+      const loginUrl = new URL("/login", request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    if (pathname === "/login" && profile) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
     return response;
   } catch {
     // Never let an auth hiccup crash the entire edge middleware

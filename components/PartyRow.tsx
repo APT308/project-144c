@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { updateParty, deleteParty } from "@/app/parties/actions";
+import { updateParty, deleteParty } from "@/app/(app)/parties/actions";
 
 type Party = {
   id: string;

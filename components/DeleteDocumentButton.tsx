@@ -1,6 +1,6 @@
 "use client";
 
-import { deleteDocument } from "@/app/documents/actions";
+import { deleteDocument } from "@/app/(app)/documents/actions";
 
 export function DeleteDocumentButton({ id, storagePath }: { id: string; storagePath: string }) {
   return (
